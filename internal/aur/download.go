@@ -1,14 +1,56 @@
 package aur
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
 
-var client = &http.Client{
-	Timeout: 10 * time.Second,
+var aurTimeout = 30 * time.Second
+var client *http.Client
+
+func init() {
+	dialer := &net.Dialer{
+		Timeout: aurTimeout,
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+		if err != nil {
+			return nil, err
+		}
+
+		// Prefer IPv6
+		for _, ip := range ips {
+			if ip.To16() != nil && ip.To4() == nil {
+				conn, err := dialer.DialContext(ctx, "tcp6", net.JoinHostPort(ip.String(), port))
+				if err == nil {
+					return conn, nil
+				}
+			}
+		}
+
+		// Fallback to IPv4
+		for _, ip := range ips {
+			if ip.To4() != nil {
+				return dialer.DialContext(ctx, "tcp4", net.JoinHostPort(ip.String(), port))
+			}
+		}
+
+		return nil, fmt.Errorf("no valid IPs for %s", host)
+	}
+
+	client = &http.Client{Transport: transport, Timeout: aurTimeout}
 }
 
 // DownloadPackageData downloads package data file from AUR; decompression happens automatically
