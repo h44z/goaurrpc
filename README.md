@@ -53,6 +53,12 @@ Feel free to make use of the following public instance of goaurrpc:
 
 [HTTP](http://server.moson.rocks/rpc) / [HTTPS](https://server.moson.rocks/rpc)
 
+### Using this service with yay
+
+```shell
+aur --aurrpcurl http://localhost:10666 <all other actions>
+```
+
 ### Future plans / ideas
 
 - Extend request types (see [v6-proposal branch](https://github.com/moson-mo/goaurrpc/tree/v6-proposal))

@@ -3,4 +3,5 @@
 .vscode
 /README_prep.md
 /coverage.out
+/test_coverage.out
 /testing.conf
