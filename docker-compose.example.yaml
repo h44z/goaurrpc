@@ -1,5 +1,5 @@
 services:
-  app:
+  aur_rpc_service:
     build: .
     ports:
       - "10666:10666"
@@ -26,3 +26,9 @@ services:
       - ADMIN_API_KEY=change-me
       - LOG_LEVEL=info
     command: -v # to get extra verbose logs
+    networks:
+      - ipv6-network
+
+networks:
+  ipv6-network:
+    enable_ipv6: true
