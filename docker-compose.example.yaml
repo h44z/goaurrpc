@@ -1,10 +1,9 @@
-version: "3.9"
-
 services:
   app:
     build: .
     ports:
       - "10666:10666"
+    restart: unless-stopped
     environment:
       - PORT=10666
       - AUR_FILE_LOCATION=https://aur.archlinux.org/packages-meta-ext-v1.json.gz
@@ -26,3 +25,4 @@ services:
       - ENABLE_ADMIN_API=false
       - ADMIN_API_KEY=change-me
       - LOG_LEVEL=info
+    command: -v # to get extra verbose logs
