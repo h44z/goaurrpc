@@ -1,6 +1,6 @@
 package memdb
 
-// MemoryDB is a data structe which holds our package data
+// MemoryDB is a data structure that holds our package data
 type MemoryDB struct {
 	PackageMap          map[string]*PackageInfo
 	PackageNames        []string

@@ -8,7 +8,7 @@ import (
 )
 
 // construct result for "info" calls
-func (s *server) getInfoResult(by string, args []string, isV6 bool) RpcResult {
+func (s *Server) getInfoResult(by string, args []string, isV6 bool) RpcResult {
 	rr := RpcResult{
 		Type: "multiinfo",
 	}
@@ -60,7 +60,7 @@ func (s *server) getInfoResult(by string, args []string, isV6 bool) RpcResult {
 }
 
 // construct result for "search" calls
-func (s *server) getSearchResult(rtype, by, mode, arg, cacheKey string, isV6 bool) (RpcResult, bool) {
+func (s *Server) getSearchResult(rtype, by, mode, arg, cacheKey string, isV6 bool) (RpcResult, bool) {
 	rr := RpcResult{
 		Type: rtype,
 	}
@@ -94,7 +94,7 @@ func (s *server) getSearchResult(rtype, by, mode, arg, cacheKey string, isV6 boo
 }
 
 // construct result for "suggest" calls
-func (s *server) getSuggestResult(arg string, pkgBase bool) []string {
+func (s *Server) getSuggestResult(arg string, pkgBase bool) []string {
 	var searchBase []string
 	found := []string{}
 	if len(arg) == 0 {

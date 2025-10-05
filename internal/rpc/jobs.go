@@ -9,7 +9,7 @@ import (
 )
 
 // start go-routines for periodic tasks
-func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
+func (s *Server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 	wg.Add(3)
 
 	// starts a go routine that continuously refreshes the package data
@@ -18,9 +18,9 @@ func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-shutdown:
-				s.LogVerbose("Stopping routine: Data refresh")
+				s.LogVerbose("Stopping routine", "routine", "Data refresh")
 				return
-			case <-time.After(time.Duration(s.conf.RefreshInterval) * time.Second):
+			case <-time.After(s.conf.RefreshInterval.Duration):
 				s.Log("Reloading package data...")
 				start := time.Now()
 				err := s.reloadData()
@@ -28,11 +28,11 @@ func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 					if err.Error() == "not modified" {
 						s.Log("Reload skipped. File has not been modified.")
 					} else {
-						s.Log("Error reloading data: ", err)
+						s.Log("Error reloading data", "error", err)
 					}
 				} else {
 					elapsed := time.Since(start)
-					s.Log("Successfully reloaded package data in", elapsed.Milliseconds(), "ms")
+					s.Log("Successfully reloaded package data", "duration", elapsed.String())
 				}
 			}
 		}
@@ -44,9 +44,9 @@ func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-shutdown:
-				s.LogVerbose("Stopping routine: Rate-Limit cleanup")
+				s.LogVerbose("Stopping routine", "routine", "Rate-Limit cleanup")
 				return
-			case <-time.After(time.Duration(s.conf.RateLimitCleanupInterval) * time.Second):
+			case <-time.After(s.conf.RateLimitCleanupInterval.Duration):
 				s.cleanupRateLimits()
 			}
 		}
@@ -58,9 +58,9 @@ func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-shutdown:
-				s.LogVerbose("Stopping routine: Search-Cache cleanup")
+				s.LogVerbose("Stopping routine", "routine", "Search-Cache cleanup")
 				return
-			case <-time.After(time.Duration(s.conf.CacheCleanupInterval) * time.Second):
+			case <-time.After(s.conf.CacheCleanupInterval.Duration):
 				s.cleanupSearchCache()
 			}
 		}
@@ -68,7 +68,7 @@ func (s *server) startJobs(shutdown chan struct{}, wg *sync.WaitGroup) {
 }
 
 // load data from file/url
-func (s *server) reloadData() error {
+func (s *Server) reloadData() error {
 	/*
 		use local file for extensive testing -> ptr, err := db.LoadDbFromFile("packages.json")
 		we don't want to stress the aur server
@@ -96,47 +96,47 @@ func (s *server) reloadData() error {
 }
 
 // clean up rate limit cache
-func (s *server) cleanupRateLimits() {
+func (s *Server) cleanupRateLimits() {
 	s.mutLimit.Lock()
 	defer s.mutLimit.Unlock()
 	t := time.Now()
 	for ip, rl := range s.rateLimits {
-		if t.Sub(rl.WindowStart) > time.Duration(s.conf.RateLimitTimeWindow)*time.Second {
+		if t.Sub(rl.WindowStart) > s.conf.RateLimitTimeWindow.Duration {
 			delete(s.rateLimits, ip)
-			s.LogVeryVerbose("Removed rate limit for", ip)
+			s.LogVeryVerbose("Removed rate limit", "ip-address", ip)
 		}
 	}
 }
 
 // clean up search cache
-func (s *server) cleanupSearchCache() {
+func (s *Server) cleanupSearchCache() {
 	s.mutCache.Lock()
 	defer s.mutCache.Unlock()
 	t := time.Now()
 	for k, ce := range s.searchCache {
-		if t.Sub(ce.TimeAdded) > time.Duration(s.conf.CacheExpirationTime)*time.Second {
+		if t.Sub(ce.TimeAdded) > s.conf.CacheExpirationTime.Duration {
 			delete(s.searchCache, k)
-			s.LogVeryVerbose("Removed cache entry for", k)
+			s.LogVeryVerbose("Removed cache entry", "key", k)
 		}
 	}
 }
 
 // removes all entries from our cache
-func (s *server) wipeSearchCache() int {
+func (s *Server) wipeSearchCache() int {
 	s.mutCache.Lock()
 	defer s.mutCache.Unlock()
 	numEntries := len(s.searchCache)
 	s.searchCache = map[string]CacheEntry{}
-	s.LogVerbose("Admin wiped search-cache. Number of entries removed:", numEntries)
+	s.LogVerbose("Admin wiped search-cache", "entry-count", numEntries)
 	return numEntries
 }
 
 // removes all rate-limit records
-func (s *server) wipeRateLimits() int {
+func (s *Server) wipeRateLimits() int {
 	s.mutLimit.Lock()
 	defer s.mutLimit.Unlock()
 	numEntries := len(s.rateLimits)
 	s.rateLimits = map[string]RateLimit{}
-	s.LogVerbose("Admin wiped search-cache. Number of entries removed:", numEntries)
+	s.LogVerbose("Admin wiped rate-limit entries", "entry-count", numEntries)
 	return numEntries
 }

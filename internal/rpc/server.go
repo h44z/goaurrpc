@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,14 +21,13 @@ import (
 	"github.com/moson-mo/goaurrpc/internal/metrics"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/goccy/go-json"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/guregu/null.v4"
 )
 
 // API server struct
-type server struct {
+type Server struct {
 	memDB       *db.MemoryDB
 	mut         sync.RWMutex
 	mutLimit    sync.RWMutex
@@ -37,7 +36,6 @@ type server struct {
 	stop        chan os.Signal
 	rateLimits  map[string]RateLimit
 	searchCache map[string]CacheEntry
-	verbose     bool
 	veryVerbose bool
 	ver         string
 	lastRefresh time.Time
@@ -45,26 +43,14 @@ type server struct {
 }
 
 // New creates a new server and immediately loads package data into memory
-func New(settings config.Settings, verbose, vverbose bool, version string) (*server, error) {
-	s := server{
+func New(settings config.Settings, veryVerboseLog bool, version string) (*Server, error) {
+	s := Server{
 		rateLimits:  make(map[string]RateLimit),
 		searchCache: make(map[string]CacheEntry),
 		stop:        make(chan os.Signal, 1),
-		verbose:     verbose,
-		veryVerbose: vverbose,
+		veryVerbose: veryVerboseLog,
 		ver:         version,
 	}
-
-	// prep logging
-	if settings.LogFile != "" {
-		f, err := os.OpenFile(settings.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return nil, err
-		}
-		log.SetOutput(f)
-	}
-	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
-	log.SetPrefix("| ")
 
 	signal.Notify(s.stop, os.Interrupt)
 
@@ -77,13 +63,13 @@ func New(settings config.Settings, verbose, vverbose bool, version string) (*ser
 	if err != nil {
 		return nil, err
 	}
-	s.Log("Loaded package data in", time.Since(start).Milliseconds(), "ms.")
+	s.Log("Loaded package data", "duration", time.Since(start).String())
 	s.Log("Server started. Ready for client connections...")
 	return &s, nil
 }
 
 // Listen creates a rest API endpoint and starts listening for requests
-func (s *server) Listen() error {
+func (s *Server) Listen() error {
 	wg := sync.WaitGroup{}
 	shutdown := make(chan struct{})
 	// start period tasks
@@ -115,12 +101,12 @@ func (s *server) Listen() error {
 }
 
 // Stop stops the server
-func (s *server) Stop() {
+func (s *Server) Stop() {
 	s.stop <- os.Interrupt
 }
 
 // set up our routes
-func (s *server) setupRoutes() {
+func (s *Server) setupRoutes() {
 	// routes
 	s.router = chi.NewRouter()
 
@@ -172,14 +158,14 @@ func (s *server) setupRoutes() {
 }
 
 // handles client connections
-func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	// response time metrics
 	timer := prometheus.NewTimer(metrics.HttpDuration.WithLabelValues())
 	defer timer.ObserveDuration()
 
 	// get clients IP address
 	ip := getRealIP(r, s.conf.TrustedReverseProxies)
-	s.LogVeryVerbose("Client connected:", ip, "->", "["+r.Method+"]", r.URL)
+	s.LogVeryVerbose("Client connected", "ip-address", ip, "method", r.Method, "url", r.URL)
 
 	// get API parameters
 	params := s.composeParameters(r)
@@ -200,7 +186,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 		// update rate limited metric
 		metrics.RateLimited.Inc()
 
-		s.LogVerbose("Client reached rate limit:", ip, "-", "User-Agent:", r.UserAgent())
+		s.LogVerbose("Client reached rate limit", "ip-address", ip, "user-agent", r.UserAgent())
 		writeError(429, "Rate limit reached", verInt, "", w)
 		return
 	}
@@ -295,7 +281,7 @@ func (s *server) handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 // get API parameters from url query/form or path
-func (s *server) composeParameters(r *http.Request) url.Values {
+func (s *Server) composeParameters(r *http.Request) url.Values {
 	// check if we got a GET or POST request
 	var params url.Values
 	if r.Method == "GET" {
@@ -332,7 +318,7 @@ func (s *server) composeParameters(r *http.Request) url.Values {
 }
 
 // check if rate limit is reached. Create / update the record.
-func (s *server) isRateLimited(ip string) bool {
+func (s *Server) isRateLimited(ip string) bool {
 	s.mutLimit.Lock()
 	defer s.mutLimit.Unlock()
 
@@ -349,7 +335,7 @@ func (s *server) isRateLimited(ip string) bool {
 			return true
 		}
 	} else {
-		s.LogVeryVerbose("Rate limit added:", ip)
+		s.LogVeryVerbose("Rate limit added", "ip-address", ip)
 		s.rateLimits[ip] = RateLimit{
 			Requests:    1,
 			WindowStart: time.Now(),
@@ -359,7 +345,7 @@ func (s *server) isRateLimited(ip string) bool {
 }
 
 // add search results to cache.
-func (s *server) addToCache(result RpcResult, key string) {
+func (s *Server) addToCache(result RpcResult, key string) {
 	if !s.conf.EnableSearchCache {
 		return
 	}

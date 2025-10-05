@@ -5,5 +5,24 @@ services:
     build: .
     ports:
       - "10666:10666"
-    volumes:
-      - ./sample.conf:/sample.conf
+    environment:
+      - PORT=10666
+      - AUR_FILE_LOCATION=https://aur.archlinux.org/packages-meta-ext-v1.json.gz
+      - MAX_RESULTS=5000
+      - REFRESH_INTERVAL=5m
+      - RATE_LIMIT=4000
+      - LOAD_FROM_FILE=false
+      - RATE_LIMIT_CLEANUP_INTERVAL=10m
+      - RATE_LIMIT_TIME_WINDOW=24h
+      - TRUSTED_REVERSE_PROXIES=127.0.0.1,::1
+      - ENABLE_SSL=false
+      - CERT_FILE=
+      - KEY_FILE=
+      - ENABLE_SEARCH_CACHE=true
+      - CACHE_CLEANUP_INTERVAL=60s
+      - CACHE_EXPIRATION_TIME=180s
+      - LOG_FILE=
+      - ENABLE_METRICS=true
+      - ENABLE_ADMIN_API=false
+      - ADMIN_API_KEY=change-me
+      - LOG_LEVEL=info

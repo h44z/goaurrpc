@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine as build
+FROM golang:1.25-alpine AS build
 WORKDIR /app
 
 # Restore modules - Start
@@ -7,11 +7,12 @@ COPY go.sum ./
 RUN go mod download
 # Restore modules - End
 
-COPY *.go ./
+COPY cmd/ cmd/
 COPY internal/ internal/
-RUN go build -ldflags="-s -w" -o /goaurrpc
+ENV GOEXPERIMENT=jsonv2
+RUN go build -ldflags="-s -w" -o /goaurrpc ./cmd/aur_rpc_service/main.go
 
-FROM alpine:3.15
+FROM alpine:3.22
 WORKDIR /
 RUN adduser \
     --disabled-password \
@@ -23,8 +24,6 @@ RUN adduser \
     "nonroot"
 USER nonroot:nonroot
 
-COPY sample.conf /sample.conf
-
 COPY --from=build /goaurrpc /goaurrpc
 
-ENTRYPOINT ["/goaurrpc", "-c", "/sample.conf"]
+ENTRYPOINT ["/goaurrpc"]

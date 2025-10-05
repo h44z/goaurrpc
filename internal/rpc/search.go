@@ -5,7 +5,7 @@ import (
 )
 
 // searches and returns found packages from our DB
-func (s *server) search(arg, by, mode string, v6 bool) ([]string, bool) {
+func (s *Server) search(arg, by, mode string, v6 bool) ([]string, bool) {
 	found := []string{}
 	cache := false
 	terms := []string{arg}

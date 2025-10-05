@@ -2,7 +2,9 @@ package memdb
 
 import (
 	"compress/gzip"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"sort"
@@ -10,64 +12,61 @@ import (
 	"time"
 
 	"github.com/moson-mo/goaurrpc/internal/aur"
-
-	"github.com/goccy/go-json"
 )
 
 // LoadDbFromFile loads package data from local JSON file
-func LoadDbFromFile(path string, lastmod time.Time) (*MemoryDB, time.Time, error) {
-	var b []byte
-
+func LoadDbFromFile(path string, lastMod time.Time) (*MemoryDB, time.Time, error) {
 	file, err := os.Stat(path)
 	if err != nil {
-		return nil, lastmod, err
+		return nil, lastMod, fmt.Errorf("db-file error for %s: %w", path, err)
 	}
 
-	if file.ModTime() == lastmod {
-		return nil, lastmod, errors.New("not modified")
+	if file.ModTime() == lastMod {
+		return nil, lastMod, errors.New("not modified")
 	}
 
+	var b []byte
 	if strings.HasSuffix(path, ".gz") {
 		gz, err := os.Open(path)
 		if err != nil {
-			return nil, lastmod, err
+			return nil, lastMod, err
 		}
 		defer gz.Close()
 		r, err := gzip.NewReader(gz)
 		if err != nil {
-			return nil, lastmod, err
+			return nil, lastMod, err
 		}
 		b, err = io.ReadAll(r)
 		if err != nil {
-			return nil, lastmod, err
+			return nil, lastMod, err
 		}
 	} else {
 		var err error
 		b, err = os.ReadFile(path)
 		if err != nil {
-			return nil, lastmod, err
+			return nil, lastMod, err
 		}
 	}
 
-	memdb, err := bytesToMemoryDB(b)
+	memDb, err := bytesToMemoryDB(b)
 	if err != nil {
-		return nil, lastmod, err
+		return nil, lastMod, err
 	}
 
-	return memdb, file.ModTime(), nil
+	return memDb, file.ModTime(), nil
 }
 
 // LoadDbFromUrl loads package data from web hosted file (packages-meta-ext-v1.json.gz)
-func LoadDbFromUrl(url string, lastmod time.Time) (*MemoryDB, time.Time, error) {
-	b, newmod, err := aur.DownloadPackageData(url, lastmod)
+func LoadDbFromUrl(url string, lastMod time.Time) (*MemoryDB, time.Time, error) {
+	b, newMod, err := aur.DownloadPackageData(url, lastMod)
 	if err != nil {
-		return nil, lastmod, err
+		return nil, lastMod, err
 	}
-	memdb, err := bytesToMemoryDB(b)
+	memDb, err := bytesToMemoryDB(b)
 	if err != nil {
-		return nil, lastmod, err
+		return nil, lastMod, err
 	}
-	return memdb, newmod, nil
+	return memDb, newMod, nil
 }
 
 // constructs MemoryDB struct
@@ -93,7 +92,7 @@ func (db *MemoryDB) fillHelperVars() {
 	db.References = map[string][]*PackageInfo{}
 	db.SuggestNames = map[byte][]string{}
 	db.SuggestBases = map[byte][]string{}
-	baseNames := []string{}
+	var baseNames []string
 
 	sort.Slice(db.PackageSlice, func(i, j int) bool {
 		return db.PackageSlice[i].Name < db.PackageSlice[j].Name
@@ -103,7 +102,8 @@ func (db *MemoryDB) fillHelperVars() {
 		db.PackageMap[pkg.Name] = pkg
 		db.PackageNames = append(db.PackageNames, pkg.Name)
 		baseNames = append(baseNames, pkg.PackageBase)
-		db.PackageDescriptions = append(db.PackageDescriptions, PackageDescription{Name: pkg.Name, Description: strings.ToLower(pkg.Description)})
+		db.PackageDescriptions = append(db.PackageDescriptions,
+			PackageDescription{Name: pkg.Name, Description: strings.ToLower(pkg.Description)})
 		if len(pkg.Name) > 0 {
 			db.SuggestNames[pkg.Name[0]] = append(db.SuggestNames[pkg.Name[0]], pkg.Name)
 		}
@@ -161,7 +161,7 @@ func (db *MemoryDB) fillHelperVars() {
 		// submitter
 		submitter := "s-" + strings.ToLower(pkg.Submitter)
 		db.References[submitter] = append(db.References[submitter], db.PackageSlice[i])
-		// comaintainers
+		// co-maintainers
 		for _, com := range pkg.CoMaintainers {
 			com = "com-" + strings.ToLower(com)
 			db.References[com] = append(db.References[com], db.PackageSlice[i])
@@ -185,7 +185,7 @@ func stripRef(ref string) string {
 
 func distinctStringSlice(s []string) []string {
 	keys := make(map[string]bool)
-	dist := []string{}
+	var dist []string
 
 	for _, entry := range s {
 		if _, value := keys[entry]; !value {

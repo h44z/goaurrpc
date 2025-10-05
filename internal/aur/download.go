@@ -25,8 +25,8 @@ func DownloadPackageData(address string, lastmod time.Time) ([]byte, time.Time, 
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode == 304 {
-		io.Copy(io.Discard, r.Body)
+	if r.StatusCode == http.StatusNotModified {
+		_, _ = io.Copy(io.Discard, r.Body) // consume body
 		return nil, lastmod, errors.New("not modified")
 	}
 

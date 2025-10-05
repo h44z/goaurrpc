@@ -18,9 +18,9 @@ number of packages:		%d
 <html/>
 `
 
-func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	ip := getRealIP(r, s.conf.TrustedReverseProxies)
-	s.LogVeryVerbose("Client connected:", ip, "->", "["+r.Method+"]", r.URL)
+	s.LogVeryVerbose("Client connected:", "ip-address", ip, "method", r.Method, "url", r.URL)
 	w.Header().Add("Content-Type", consts.ContentTypeHtml)
 	s.mut.RLock()
 	defer s.mut.RUnlock()

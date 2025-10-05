@@ -18,58 +18,34 @@ For a performance comparison, see [Benchmarks](BENCHMARKS.md)
 - Build with: `./build.sh`
 - This will create a binary `goaurrpc`
 
-### Config file
+### Configuration
 
-See `sample.conf` file. The config file can be loaded by specifying "-c" parameter when running goaurrpc.  
-For example: `./goaurrpc -c sample.conf`.
-If this parameter is not passed, the default config will be used (sample.conf contains the defaults).  
+The whole configuration is done via environment variables.  
+The following environment variables are supported: 
 
-```
-{
-	"Port": 10666,
-	"AurFileLocation": "https://aur.archlinux.org/packages-meta-ext-v1.json.gz",
-	"MaxResults": 5000,
-	"RefreshInterval": 300,
-	"RateLimit": 4000,
-	"LoadFromFile": false,
-	"RateLimitCleanupInterval": 600,
-	"RateLimitTimeWindow": 86400,
-	"TrustedReverseProxies": [
-		"127.0.0.1",
-		"::1"
-	],
-	"EnableSSL": false,
-	"CertFile": "",
-	"KeyFile": "",
-	"EnableSearchCache": true,
-	"CacheCleanupInterval": 60,
-	"CacheExpirationTime": 180,
-	"EnableMetrics": true,
-	"EnableAdminApi": false,
-	"AdminAPIKey": "change-me"
-}
-```
 
-| Setting | Description |
-| ------ | ------ |
-| Port | The port number our service is listening on |
-| AurFileLocation | Either the URL to the full metadata archive `packages-meta-ext-v1.json.gz` or a local copy of the file |
-| MaxResults | The maximum number of package results that are being returned to the client |
-| RefreshInterval | The interval (in seconds) in which the metadata file is being reloaded |
-| RateLimit | The maximum number of requests that are allowed within the time-window |
-| LoadFromFile | Set to true when using a local file instead of a URL for `AurFileLocation` |
-| RateLimitCleanupInterval | The interval (in seconds) in which rate-limits are being cleaned up |
-| RateLimitTimeWindow | Defines the length of the time window for rate-limiting (in seconds) |
-| Trusted reverse proxies | A list of trusted IP-Addresses, in case you use a reverse proxy and need to rely on `X-Real-IP` or `X-Forwarded-For` headers to identify a client (for rate-limiting) |
-| EnableSSL | Enables internal SSL/TLS. You'll need to provide `CertFile`and `KeyFile` when enabling it. I'd recommend to use nginx as reverse proxy to add encryption instead |
-| CertFile | Path to the cert file (if SSL is enabled) |
-| KeyFile | Path to the corresponding key file (if SSL is enabled) |
-| EnableSearchCache | Caches data for search queries that have been performed by clients |
-| CacheCleanupInterval | The interval (in seconds) for performing cleanup of search-cache entries |
-| CacheExpirationTime | The number of seconds an entry should stay in the search-cache |
-| EnableMetrics | Enables Prometheus metrics at /metrics |
-| EnableAdminApi | Enables the administrative endpoint at /admin |
-| AdminAPIKey | The API Key that is to be provided in the header for the /admin endpoint |
+| Environment Variable            | Description                                                                                                                                                           |
+|---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PORT                            | The port number our service is listening on                                                                                                                           |
+| AUR_FILE_LOCATION               | Either the URL to the full metadata archive `packages-meta-ext-v1.json.gz` or a local copy of the file                                                                |
+| MAX_RESULTS                     | The maximum number of package results that are being returned to the client                                                                                           |
+| REFRESH_INTERVAL                | The interval (in seconds) in which the metadata file is being reloaded                                                                                                |
+| RATE_LIMIT                      | The maximum number of requests that are allowed within the time-window                                                                                                |
+| LOAD_FROM_FILE                  | Set to true when using a local file instead of a URL for `AurFileLocation`                                                                                            |
+| RATE_LIMIT_CLEANUP_INTERVAL     | The interval (in seconds) in which rate-limits are being cleaned up                                                                                                   |
+| RATE_LIMIT_TIME_WINDOW          | Defines the length of the time window for rate-limiting (in seconds)                                                                                                  |
+| Trusted TRUSTED_REVERSE_PROXIES | A list of trusted IP-Addresses, in case you use a reverse proxy and need to rely on `X-Real-IP` or `X-Forwarded-For` headers to identify a client (for rate-limiting) |
+| ENABLE_SSL                      | Enables internal SSL/TLS. You'll need to provide `CertFile`and `KeyFile` when enabling it. I'd recommend to use nginx as reverse proxy to add encryption instead      |
+| CERT_FILE                       | Path to the cert file (if SSL is enabled)                                                                                                                             |
+| KEY_FILE                        | Path to the corresponding key file (if SSL is enabled)                                                                                                                |
+| ENABLE_SEARCH_CACHE             | Caches data for search queries that have been performed by clients                                                                                                    |
+| CACHE_CLEANUP_INTERVAL          | The interval (in seconds) for performing cleanup of search-cache entries                                                                                              |
+| CACHE_EXPIRATION_TIME           | The number of seconds an entry should stay in the search-cache                                                                                                        |
+| ENABLE_METRICS                  | Enables Prometheus metrics at /metrics                                                                                                                                |
+| ENABLE_ADMIN_API                | Enables the administrative endpoint at /admin                                                                                                                         |
+| ADMIN_API_KEY                   | The API Key that is to be provided in the header for the /admin endpoint                                                                                              |
+| LOG_FILE                        | File path to which logs should be written. Empty means logs are printed to stdout                                                                                     |
+| LOG_LEVEL                       | Sets the logging level (valid values: debug, info, warn, error), defaults to info                                                                                     |
 
 ### Public endpoint
 
