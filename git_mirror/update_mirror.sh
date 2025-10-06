@@ -74,7 +74,7 @@ for BRANCH in $BRANCHES; do
 
   if [[ ! -d "$TARGET_REPO" ]]; then
     echo "📁 Creating bare repo at $TARGET_REPO"
-    git init --bare "$TARGET_REPO"
+    git -c advice.defaultBranchName=false init --initial-branch=main --bare "$TARGET_REPO"
     git --git-dir="$TARGET_REPO" config http.receivepack false
   fi
 
