@@ -17,6 +17,9 @@
 
 set -euo pipefail
 
+# store current script execution dir
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 SRC_URL="${1:-}"
 WORK_DIR="${2:-}"
 DEST_DIR="${3:-}"
@@ -29,6 +32,10 @@ fi
 mkdir -p "$WORK_DIR"
 mkdir -p "$DEST_DIR"
 
+# ensure that workdir and destdir are absolute (use scriptdir as default base)
+WORK_DIR=$(cd "$WORK_DIR" && pwd)
+DEST_DIR=$(cd "$DEST_DIR" && pwd)
+
 REPO_NAME=$(basename "$SRC_URL" .git)
 SRC_REPO="$WORK_DIR/$REPO_NAME"
 
@@ -40,7 +47,7 @@ if [[ -d "$SRC_REPO/.git" ]]; then
   git fetch --all --prune
 else
   echo "⬇️ Cloning source repository from $SRC_URL into $SRC_REPO"
-  git clone --mirror "$SRC_URL" "$SRC_REPO"
+  git clone "$SRC_URL" "$SRC_REPO"
   cd "$SRC_REPO"
   # --mirror gives us all refs (branches, tags, etc.)
 fi
